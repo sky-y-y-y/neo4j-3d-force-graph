@@ -1,0 +1,53 @@
+<head>
+  <style> body { margin: 0; } </style>
+  <script src="//unpkg.com/3d-force-graph"></script>
+  <script src="https://unpkg.com/neo4j-driver"></script>
+</head>
+<body>
+  <div id="3d-graph"></div>
+  <script>
+    const driver = neo4j.driver("bolt://demo.neo4jlabs.com", neo4j.auth.basic("gameofthrones", "gameofthrones"), {encrypted: true});
+    const session = driver.session({database:"gameofthrones"});
+    const start = new Date()
+    session
+      .run('MATCH (n)-[:INTERACTS1]->(m) RETURN id(n) as source, id(m) as target, labels(n)[0] as sourceLabel, labels(m)[0] as targetLabel, n.name as sourceCaption, m.name as targetCaption LIMIT $limit', {limit: neo4j.int(5000)})
+      .then(function (result) {
+        const links = result.records.map(r => ({
+          source: r.get('source').toNumber(),
+          target: r.get('target').toNumber(),
+          sourceLabel: r.get('sourceLabel'),
+          targetLabel: r.get('targetLabel'),
+          sourceCaption: r.get('sourceCaption'),
+          targetCaption: r.get('targetCaption')
+        }));
+        session.close();
+        console.log(links.length+" links loaded in "+(new Date()-start)+" ms.")
+        
+        const nodes = {};
+        links.forEach(link => {
+          if (!nodes[link.source]) {
+            nodes[link.source] = { id: link.source, label: link.sourceLabel, caption: link.sourceCaption };
+          }
+          if (!nodes[link.target]) {
+            nodes[link.target] = { id: link.target, label: link.targetLabel, caption: link.targetCaption };
+          }
+        });
+        const gData = { nodes: Object.values(nodes), links: links };
+        
+        const Graph = ForceGraph3D()(document.getElementById('3d-graph'))
+          .graphData(gData)
+          .nodeAutoColorBy('label')
+          .nodeLabel(node => `${node.label}: ${node.caption}`)
+          .onNodeHover(node => {
+            if (node) {
+              document.body.style.cursor = 'pointer';
+            } else {
+              document.body.style.cursor = 'default';
+            }
+          });
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+  </script>
+</body>
