@@ -23,9 +23,8 @@
            const link={source:r.get('source').toNumber(), target:r.get('target').toNumber()}
            Graph.graphData({
                 nodes: [...nodes, { id:link.source }, { id: link.target}],
-                links: [...links, link],
-		   .nodeLabel(node => `${node.label}: ${node.caption} )
-                      .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
+                links: [...links, link]
+		   
         });        
         session.close();
         console.log(Graph.graphData().links.length+" links loaded in "+(new Date()-start)+" ms.")
